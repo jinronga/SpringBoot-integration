@@ -55,20 +55,39 @@ public class UserServiceImpl extends ServiceImpl<UserDao, UserEntity> implements
     public UserEntity selectUserById(Long userId) {
         //1 先从redis里面查询，如果有直接返回结果，如果没有再去查询mysql
         UserEntity userInfo = (UserEntity) redisTemplate.opsForValue().get(Constants.REDIS_USER + userId);
-
+// 1s 1000 2000
         if (userInfo != null) {
             return userInfo;
         } else {
+            synchronized (this){
                 //2 redis里面无，继续查询mysql
                 userInfo = this.getOne(new QueryWrapper<UserEntity>().lambda().eq(UserEntity::getId, userId));
                 if (userInfo != null) {
                     //3.2 mysql有，需要将数据写回redis，保证下一次的缓存命中率
                     redisTemplate.opsForValue().set(Constants.REDIS_USER + userInfo.getId(), userInfo);
+                }
             }
+
         }
         return userInfo;
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     /**
      *    加强补充，避免突然key实现了，打爆mysql，做一下预防，尽量不出现击穿的情况。
      * @param userId
